@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 	"errors"
-	"shortener-link/models"
-	"shortener-link/repository"
+	"shortener-link/internal/models"
+	"shortener-link/internal/repository"
 	"time"
 )
 
@@ -13,23 +13,24 @@ type LinkService interface {
 	GetAll(ctx context.Context) ([]models.Link, error)
 	GetByShortenerLink(ctx context.Context, shortenerLink string) (string, error)
 	DeleteShortenerLink(ctx context.Context, shortenerLink string) error
-	GetStatsByShortenerLink(ctx context.Context, shortenerLink string) (int, error)
+	GetStatsByShortenerLink(ctx context.Context, shortenerLink string) (int, time.Time, error)
+	DeleteExpiredShortenerLink(ctx context.Context) error
 }
 
-type LinkServiceImpl struct {
+type Service struct {
 	repo repository.LinkRepository
 }
 
-func NewLinkServiceImpl(repo repository.LinkRepository) (*LinkServiceImpl, error) {
+func NewLinkServiceImpl(repo repository.LinkRepository) (*Service, error) {
 	if repo == nil {
 		return nil, errors.New("link repository is nil")
 	}
-	return &LinkServiceImpl{
+	return &Service{
 		repo: repo,
 	}, nil
 }
 
-func (s *LinkServiceImpl) Create(ctx context.Context, link string) (string, error) {
+func (s *Service) Create(ctx context.Context, link string) (string, error) {
 
 	shortenerLink, err := GenerateShortenerLink(link)
 	if err != nil {
@@ -49,7 +50,7 @@ func (s *LinkServiceImpl) Create(ctx context.Context, link string) (string, erro
 	return linkID, nil
 }
 
-func (s *LinkServiceImpl) GetAll(ctx context.Context) ([]models.Link, error) {
+func (s *Service) GetAll(ctx context.Context) ([]models.Link, error) {
 
 	links, err := s.repo.Get(ctx)
 	if err != nil {
@@ -59,7 +60,7 @@ func (s *LinkServiceImpl) GetAll(ctx context.Context) ([]models.Link, error) {
 	return links, nil
 }
 
-func (s *LinkServiceImpl) GetByShortenerLink(ctx context.Context, shortenerLink string) (string, error) {
+func (s *Service) GetByShortenerLink(ctx context.Context, shortenerLink string) (string, error) {
 
 	linkInfo, err := s.repo.GetByShortenerLink(ctx, shortenerLink)
 	if err != nil {
@@ -73,7 +74,7 @@ func (s *LinkServiceImpl) GetByShortenerLink(ctx context.Context, shortenerLink 
 	return linkInfo.FullLink, nil
 }
 
-func (s *LinkServiceImpl) DeleteShortenerLink(ctx context.Context, shortenerLink string) error {
+func (s *Service) DeleteShortenerLink(ctx context.Context, shortenerLink string) error {
 
 	if err := s.repo.DeleteByShortenerLink(ctx, shortenerLink); err != nil {
 		return err
@@ -82,12 +83,21 @@ func (s *LinkServiceImpl) DeleteShortenerLink(ctx context.Context, shortenerLink
 	return nil
 }
 
-func (s *LinkServiceImpl) GetStatsByShortenerLink(ctx context.Context, shortenerLink string) (int, error) {
+func (s *Service) GetStatsByShortenerLink(ctx context.Context, shortenerLink string) (int, time.Time, error) {
 
 	link, err := s.repo.GetByShortenerLink(ctx, shortenerLink)
 	if err != nil {
-		return 0, err
+		return 0, time.Time{}, err
 	}
 
-	return link.Visits, nil
+	return link.Visits, link.LastVisitTime, nil
+}
+
+func (s *Service) DeleteExpiredShortenerLink(ctx context.Context) error {
+
+	if err := s.repo.DeleteExpiredShortenerLink(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }

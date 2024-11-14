@@ -13,7 +13,7 @@ func GenerateShortenerLink(link string) (string, error) {
 		return "", err
 	}
 
-	shortenerLink := "http://generated-link/" + base64.URLEncoding.EncodeToString(bytes)[:len(link)]
+	shortenerLink := "generated-id-" + base64.URLEncoding.EncodeToString(bytes)[:len(link)]
 
 	return shortenerLink, nil
 }

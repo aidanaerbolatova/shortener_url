@@ -3,7 +3,8 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"shortener-link/models"
+	"shortener-link/internal/models"
+	"time"
 )
 
 type LinkRepository interface {
@@ -12,37 +13,38 @@ type LinkRepository interface {
 	GetByShortenerLink(ctx context.Context, shortenerLink string) (models.Link, error)
 	UpdateVisitorsByShortenerLink(ctx context.Context, shortenerLink string) error
 	DeleteByShortenerLink(ctx context.Context, shortenerLink string) error
+	DeleteExpiredShortenerLink(ctx context.Context) error
 }
 
-type LinkPostgresRepository struct {
+type Repository struct {
 	db *sql.DB
 }
 
-func NewLinkPostgresRepository(db *sql.DB) *LinkPostgresRepository {
-	return &LinkPostgresRepository{
+func NewRepository(db *sql.DB) *Repository {
+	return &Repository{
 		db: db,
 	}
 }
 
-func (r *LinkPostgresRepository) Create(ctx context.Context, linkInfo models.Link) (string, error) {
+func (r *Repository) Create(ctx context.Context, linkInfo models.Link) (string, error) {
 
 	query := `INSERT into link_info
-    			(link_id, full_link, shortner_link, visits, created_at) 
-				values (CAST($1 as integer),$2, $3, $4, $5) 
+    			(link_id, full_link, shortner_link, visits, last_visit_time, created_at) 
+				values (CAST($1 as integer),$2, $3, $4, $5, $6) 
 				returning id `
 
 	var linkID string
 
-	row := r.db.QueryRowContext(ctx, query, linkInfo.FullLink, linkInfo.ShortenerLink, linkInfo.Visits, linkInfo.CreatedAt)
+	row := r.db.QueryRowContext(ctx, query, linkInfo.FullLink, linkInfo.ShortenerLink, linkInfo.Visits, linkInfo.LastVisitTime, linkInfo.CreatedAt)
 	if err := row.Scan(&linkID); err != nil {
 		return "", err
 	}
 	return linkID, nil
 }
 
-func (r *LinkPostgresRepository) Get(ctx context.Context) ([]models.Link, error) {
+func (r *Repository) Get(ctx context.Context) ([]models.Link, error) {
 
-	query := `SELECT link_id, full_link, shortener_link, visits, created_at 
+	query := `SELECT link_id, full_link, shortener_link, visits, last_visit_time,  created_at 
 			  FROM link_info`
 
 	rows, err := r.db.QueryContext(ctx, query)
@@ -54,7 +56,7 @@ func (r *LinkPostgresRepository) Get(ctx context.Context) ([]models.Link, error)
 	links := make([]models.Link, 0, 2)
 	for rows.Next() {
 		var link models.Link
-		if err := rows.Scan(&link.ID, &link.FullLink, &link.ShortenerLink, &link.Visits, &link.CreatedAt); err != nil {
+		if err := rows.Scan(&link.ID, &link.FullLink, &link.ShortenerLink, &link.Visits, &link.LastVisitTime, &link.CreatedAt); err != nil {
 			return nil, err
 		}
 		links = append(links, link)
@@ -63,20 +65,20 @@ func (r *LinkPostgresRepository) Get(ctx context.Context) ([]models.Link, error)
 	return links, nil
 }
 
-func (r *LinkPostgresRepository) UpdateVisitorsByShortenerLink(ctx context.Context, shortenerLink string) error {
+func (r *Repository) UpdateVisitorsByShortenerLink(ctx context.Context, shortenerLink string) error {
 
 	query := `UPDATE link_info
-			  SET visits = visits + 1
+			  SET visits = visits + 1, xf = $1
 			  WHERE shortener_link = $2`
 
-	_, err := r.db.ExecContext(ctx, query, shortenerLink)
+	_, err := r.db.ExecContext(ctx, query, time.Now().UTC(), shortenerLink)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *LinkPostgresRepository) DeleteByShortenerLink(ctx context.Context, shortenerLink string) error {
+func (r *Repository) DeleteByShortenerLink(ctx context.Context, shortenerLink string) error {
 
 	query := `DELETE FROM link_info WHERE shortener_link = $1`
 
@@ -87,9 +89,9 @@ func (r *LinkPostgresRepository) DeleteByShortenerLink(ctx context.Context, shor
 	return nil
 }
 
-func (r *LinkPostgresRepository) GetByShortenerLink(ctx context.Context, shortenerLink string) (models.Link, error) {
+func (r *Repository) GetByShortenerLink(ctx context.Context, shortenerLink string) (models.Link, error) {
 
-	query := `SELECT link_id, full_link, shortener_link, visits, created_at 
+	query := `SELECT link_id, full_link, shortener_link, visits, last_visit_time, created_at 
 			  FROM link_info 
 			  WHERE shortener_link = $1`
 
@@ -103,6 +105,7 @@ func (r *LinkPostgresRepository) GetByShortenerLink(ctx context.Context, shorten
 		&link.FullLink,
 		&link.ShortenerLink,
 		&link.Visits,
+		&link.LastVisitTime,
 		&link.CreatedAt,
 	); err != nil {
 		if err == models.ErrLinkNotFound {
@@ -111,4 +114,16 @@ func (r *LinkPostgresRepository) GetByShortenerLink(ctx context.Context, shorten
 		return models.Link{}, err
 	}
 	return link, nil
+}
+
+func (r *Repository) DeleteExpiredShortenerLink(ctx context.Context) error {
+
+	query := `DELETE FROM link_info  WHERE created_at < NOW() - INTERVAL 30 DAY`
+
+	_, err := r.db.ExecContext(ctx, query)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
