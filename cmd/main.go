@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"github.com/gofiber/fiber/v2/log"
 	"log/slog"
 	"shortener-link/internal/config"
@@ -9,7 +8,6 @@ import (
 	"shortener-link/internal/repository"
 	"shortener-link/internal/server"
 	"shortener-link/internal/service"
-	"time"
 )
 
 func main() {
@@ -41,12 +39,12 @@ func run() error {
 		return err
 	}
 
-	cancelCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	if err := srv.DeleteExpiredShortenerLinks(cancelCtx, 24*time.Hour); err != nil {
-		slog.Error(err.Error())
-		return err
-	}
+	//cancelCtx, cancel := context.WithCancel(context.Background())
+	//defer cancel()
+	//if err := srv.DeleteExpiredShortenerLinks(cancelCtx, 24*time.Hour); err != nil {
+	//	slog.Error(err.Error())
+	//	return err
+	//}
 
 	h := handler.NewHandler(srv)
 	if err := server.RunServer(cfg, h.Register()); err != nil {
