@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v5"
 	"shortener-link/internal/models"
 	"time"
 )
