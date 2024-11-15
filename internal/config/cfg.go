@@ -24,7 +24,7 @@ func LoadConfig(path string) (Config, error) {
 		Host:     os.Getenv("HOST"),
 		Port:     os.Getenv("PORT"),
 		Password: os.Getenv("PASSWORD"),
-		User:     os.Getenv("USER"),
+		User:     os.Getenv("USERNAME"),
 		DBName:   os.Getenv("DBNAME"),
 		SSLMode:  os.Getenv("SSLMODE"),
 	}

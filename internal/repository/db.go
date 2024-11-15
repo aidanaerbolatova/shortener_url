@@ -1,28 +1,29 @@
 package repository
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
-	_ "github.com/lib/pq"
+	"github.com/jackc/pgx/v4"
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"shortener-link/internal/config"
 )
 
-func NewConnection(config *config.Config) (*sql.DB, error) {
-
+func NewConnection(config *config.Config) (*pgx.Conn, error) {
 	dsn := fmt.Sprintf(
-		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
-		config.Host, config.Port, config.User, config.Password, config.DBName, config.SSLMode,
+		"postgresql://%s:%s@%s:%s/%s?sslmode=%s",
+		config.User,
+		config.Password,
+		config.Host,
+		config.Port,
+		config.DBName,
+		config.SSLMode,
 	)
 
-	db, err := sql.Open("postgres", dsn)
+	conn, err := pgx.Connect(context.Background(), dsn)
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
+	defer conn.Close(context.Background())
 
-	if err := db.Ping(); err != nil {
-		return nil, err
-	}
-
-	return db, nil
+	return conn, nil
 }

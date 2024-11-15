@@ -15,6 +15,7 @@ type LinkService interface {
 	DeleteShortenerLink(ctx context.Context, shortenerLink string) error
 	GetStatsByShortenerLink(ctx context.Context, shortenerLink string) (int, time.Time, error)
 	DeleteExpiredShortenerLink(ctx context.Context) error
+	DeleteExpiredShortenerLinks(ctx context.Context, interval time.Duration) error
 }
 
 type Service struct {

@@ -18,7 +18,7 @@ func NewHandler(service service.LinkService) *Handler {
 	}
 }
 
-func (h Handler) Register() *fiber.App {
+func (h *Handler) Register() *fiber.App {
 
 	appConfig := fiber.Config{
 		Immutable:         true,

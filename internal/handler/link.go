@@ -2,65 +2,66 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/pkg/errors"
 	"net/http"
-	models2 "shortener-link/internal/models"
+	"shortener-link/internal/models"
 )
 
-func (h Handler) Create(c *fiber.Ctx) error {
-	var url models2.LinkRequest
-	if err := c.BodyParser(&url); err != nil {
-		c.JSON(models2.ErrorResponse{
+func (h *Handler) Create(c *fiber.Ctx) error {
+	var request models.LinkRequest
+	if err := c.BodyParser(&request); err != nil {
+		jsonErr := c.JSON(models.ErrorResponse{
 			Code:    http.StatusBadRequest,
 			Message: err.Error(),
 		})
-		return err
+		return errors.Wrap(err, jsonErr.Error())
 	}
-	_, err := h.service.Create(c.Context(), url.Link)
+	_, err := h.service.Create(c.Context(), request.Link)
 	if err != nil {
-		c.JSON(models2.ErrorResponse{
-			Code:    http.StatusInternalServerError,
+		jsonErr := c.JSON(models.ErrorResponse{
+			Code:    http.StatusBadRequest,
 			Message: err.Error(),
 		})
-		return err
+		return errors.Wrap(err, jsonErr.Error())
 	}
 
 	c.Status(http.StatusOK)
 	return nil
 }
 
-func (h Handler) GetAll(c *fiber.Ctx) error {
+func (h *Handler) GetAll(c *fiber.Ctx) error {
 
 	links, err := h.service.GetAll(c.Context())
 	if err != nil {
-		c.JSON(models2.ErrorResponse{
-			Code:    http.StatusInternalServerError,
+		jsonErr := c.JSON(models.ErrorResponse{
+			Code:    http.StatusBadRequest,
 			Message: err.Error(),
 		})
-		return err
+		return errors.Wrap(err, jsonErr.Error())
 	}
 
 	c.Status(http.StatusOK).JSON(links)
 	return nil
 }
 
-func (h Handler) GetByShortener(c *fiber.Ctx) error {
+func (h *Handler) GetByShortener(c *fiber.Ctx) error {
 
 	link := c.Query("link")
 
 	fullLink, err := h.service.GetByShortenerLink(c.Context(), link)
 	if err != nil {
-		if err == models2.ErrLinkNotFound {
-			c.JSON(models2.ErrorResponse{
-				Code:    http.StatusNotFound,
-				Message: "сокращённая ссылка не найдена",
+		if err == models.ErrLinkNotFound {
+			jsonErr := c.JSON(models.ErrorResponse{
+				Code:    http.StatusBadRequest,
+				Message: err.Error(),
 			})
-			return models2.ErrLinkNotFound
+			return errors.Wrap(models.ErrLinkNotFound, jsonErr.Error())
 		}
-		c.JSON(models2.ErrorResponse{
-			Code:    http.StatusInternalServerError,
+		jsonErr := c.JSON(models.ErrorResponse{
+			Code:    http.StatusBadRequest,
 			Message: err.Error(),
 		})
-		return err
+		return errors.Wrap(err, jsonErr.Error())
 	}
 
 	c.Status(http.StatusOK).JSON(fullLink)
@@ -68,43 +69,43 @@ func (h Handler) GetByShortener(c *fiber.Ctx) error {
 
 }
 
-func (h Handler) Delete(c *fiber.Ctx) error {
+func (h *Handler) Delete(c *fiber.Ctx) error {
 
 	link := c.Query("link")
 
 	if err := h.service.DeleteShortenerLink(c.Context(), link); err != nil {
-		c.JSON(models2.ErrorResponse{
-			Code:    http.StatusInternalServerError,
+		jsonErr := c.JSON(models.ErrorResponse{
+			Code:    http.StatusBadRequest,
 			Message: err.Error(),
 		})
-		return err
+		return errors.Wrap(err, jsonErr.Error())
 	}
 
 	c.Status(http.StatusOK)
 	return nil
 }
 
-func (h Handler) GetStats(c *fiber.Ctx) error {
+func (h *Handler) GetStats(c *fiber.Ctx) error {
 
 	link := c.Query("link")
 
 	stat, lastVisitTime, err := h.service.GetStatsByShortenerLink(c.Context(), link)
 	if err != nil {
-		if err == models2.ErrLinkNotFound {
-			c.JSON(models2.ErrorResponse{
-				Code:    http.StatusNotFound,
-				Message: "сокращённая ссылка не найдена",
+		if err == models.ErrLinkNotFound {
+			jsonErr := c.JSON(models.ErrorResponse{
+				Code:    http.StatusBadRequest,
+				Message: err.Error(),
 			})
-			return models2.ErrLinkNotFound
+			return errors.Wrap(models.ErrLinkNotFound, jsonErr.Error())
 		}
-		c.JSON(models2.ErrorResponse{
-			Code:    http.StatusInternalServerError,
+		jsonErr := c.JSON(models.ErrorResponse{
+			Code:    http.StatusBadRequest,
 			Message: err.Error(),
 		})
-		return err
+		return errors.Wrap(err, jsonErr.Error())
 	}
 
-	c.Status(http.StatusOK).JSON(models2.GetStatsResponse{
+	c.Status(http.StatusOK).JSON(models.GetStatsResponse{
 		StatsCount:    stat,
 		LastVisitTime: lastVisitTime,
 	})

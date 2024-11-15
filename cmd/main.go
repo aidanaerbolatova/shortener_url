@@ -2,11 +2,12 @@ package main
 
 import (
 	"github.com/gofiber/fiber/v2/log"
+	"log/slog"
 	"shortener-link/internal/config"
-	handler2 "shortener-link/internal/handler"
+	"shortener-link/internal/handler"
 	"shortener-link/internal/repository"
 	"shortener-link/internal/server"
-	service2 "shortener-link/internal/service"
+	"shortener-link/internal/service"
 )
 
 func main() {
@@ -20,27 +21,34 @@ func run() error {
 
 	cfg, err := config.LoadConfig("./.env")
 	if err != nil {
-		log.Trace(err)
+		slog.Error(err.Error())
 		return err
 	}
 
 	db, err := repository.NewConnection(&cfg)
 	if err != nil {
-		log.Trace(err)
+		slog.Error(err.Error())
 		return err
 	}
-	repository := repository.NewRepository(db)
 
-	service, err := service2.NewLinkServiceImpl(repository)
+	repo := repository.NewRepository(db)
+
+	srv, err := service.NewLinkServiceImpl(repo)
 	if err != nil {
-		log.Trace(err)
+		slog.Error(err.Error())
 		return err
 	}
 
-	handler := handler2.NewHandler(service)
+	//cancelCtx, cancel := context.WithCancel(context.Background())
+	//defer cancel()
+	//if err := srv.DeleteExpiredShortenerLinks(cancelCtx, 24*time.Hour); err != nil {
+	//	slog.Error(err.Error())
+	//	return err
+	//}
 
-	if err := server.RunServer(cfg, handler.Register()); err != nil {
-		log.Trace(err)
+	h := handler.NewHandler(srv)
+	if err := server.RunServer(cfg, h.Register()); err != nil {
+		slog.Error(err.Error())
 		return err
 	}
 

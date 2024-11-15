@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"github.com/jackc/pgx/v4"
 	"shortener-link/internal/models"
 	"time"
 )
@@ -17,37 +18,28 @@ type LinkRepository interface {
 }
 
 type Repository struct {
-	db *sql.DB
+	db *pgx.Conn
 }
 
-func NewRepository(db *sql.DB) *Repository {
+func NewRepository(db *pgx.Conn) *Repository {
 	return &Repository{
 		db: db,
 	}
 }
 
 func (r *Repository) Create(ctx context.Context, linkInfo models.Link) (string, error) {
-
-	query := `INSERT into link_info
-    			(link_id, full_link, shortner_link, visits, last_visit_time, created_at) 
-				values (CAST($1 as integer),$2, $3, $4, $5, $6) 
-				returning id `
-
 	var linkID string
 
-	row := r.db.QueryRowContext(ctx, query, linkInfo.FullLink, linkInfo.ShortenerLink, linkInfo.Visits, linkInfo.LastVisitTime, linkInfo.CreatedAt)
-	if err := row.Scan(&linkID); err != nil {
+	err := r.db.QueryRow(context.Background(), InsertQuery, linkInfo.FullLink, linkInfo.ShortenerLink, linkInfo.Visits, linkInfo.LastVisitTime, linkInfo.CreatedAt).Scan(&linkID)
+	if err != nil {
 		return "", err
 	}
+
 	return linkID, nil
 }
 
 func (r *Repository) Get(ctx context.Context) ([]models.Link, error) {
-
-	query := `SELECT link_id, full_link, shortener_link, visits, last_visit_time,  created_at 
-			  FROM link_info`
-
-	rows, err := r.db.QueryContext(ctx, query)
+	rows, err := r.db.Query(ctx, GetQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -66,12 +58,7 @@ func (r *Repository) Get(ctx context.Context) ([]models.Link, error) {
 }
 
 func (r *Repository) UpdateVisitorsByShortenerLink(ctx context.Context, shortenerLink string) error {
-
-	query := `UPDATE link_info
-			  SET visits = visits + 1, xf = $1
-			  WHERE shortener_link = $2`
-
-	_, err := r.db.ExecContext(ctx, query, time.Now().UTC(), shortenerLink)
+	_, err := r.db.Exec(ctx, UpdateVisitorsByShortenerLinkQuery, time.Now().UTC(), shortenerLink)
 	if err != nil {
 		return err
 	}
@@ -79,10 +66,7 @@ func (r *Repository) UpdateVisitorsByShortenerLink(ctx context.Context, shortene
 }
 
 func (r *Repository) DeleteByShortenerLink(ctx context.Context, shortenerLink string) error {
-
-	query := `DELETE FROM link_info WHERE shortener_link = $1`
-
-	_, err := r.db.ExecContext(ctx, query, shortenerLink)
+	_, err := r.db.Exec(ctx, DeleteByShortenerLinkQueryQuery, shortenerLink)
 	if err != nil {
 		return err
 	}
@@ -90,17 +74,8 @@ func (r *Repository) DeleteByShortenerLink(ctx context.Context, shortenerLink st
 }
 
 func (r *Repository) GetByShortenerLink(ctx context.Context, shortenerLink string) (models.Link, error) {
-
-	query := `SELECT link_id, full_link, shortener_link, visits, last_visit_time, created_at 
-			  FROM link_info 
-			  WHERE shortener_link = $1`
-
-	if _, err := r.db.Prepare(query); err != nil {
-		return models.Link{}, err
-	}
-
 	var link models.Link
-	if err := r.db.QueryRowContext(ctx, query, shortenerLink).Scan(
+	if err := r.db.QueryRow(ctx, GetByShortenerLinkQuery, shortenerLink).Scan(
 		&link.ID,
 		&link.FullLink,
 		&link.ShortenerLink,
@@ -108,7 +83,7 @@ func (r *Repository) GetByShortenerLink(ctx context.Context, shortenerLink strin
 		&link.LastVisitTime,
 		&link.CreatedAt,
 	); err != nil {
-		if err == models.ErrLinkNotFound {
+		if err == sql.ErrNoRows {
 			return models.Link{}, models.ErrLinkNotFound
 		}
 		return models.Link{}, err
@@ -117,10 +92,7 @@ func (r *Repository) GetByShortenerLink(ctx context.Context, shortenerLink strin
 }
 
 func (r *Repository) DeleteExpiredShortenerLink(ctx context.Context) error {
-
-	query := `DELETE FROM link_info  WHERE created_at < NOW() - INTERVAL 30 DAY`
-
-	_, err := r.db.ExecContext(ctx, query)
+	_, err := r.db.Exec(ctx, DeleteExpiredShortenerLinkQuery)
 	if err != nil {
 		return err
 	}

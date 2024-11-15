@@ -12,7 +12,7 @@ type Link struct {
 }
 
 type LinkRequest struct {
-	Link string `json:"urls"`
+	Link string `json:"url"`
 }
 
 type GetStatsResponse struct {
