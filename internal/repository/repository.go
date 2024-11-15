@@ -30,7 +30,7 @@ func NewRepository(db *pgx.Conn) *Repository {
 func (r *Repository) Create(ctx context.Context, linkInfo models.Link) (string, error) {
 	var linkID string
 
-	err := r.db.QueryRow(context.Background(), InsertQuery, linkInfo.FullLink, linkInfo.ShortenerLink, linkInfo.Visits, linkInfo.LastVisitTime, linkInfo.CreatedAt).Scan(&linkID)
+	err := r.db.QueryRow(ctx, InsertQuery, linkInfo.FullLink, linkInfo.ShortenerLink, linkInfo.Visits, linkInfo.LastVisitTime, linkInfo.CreatedAt).Scan(&linkID)
 	if err != nil {
 		return "", err
 	}
