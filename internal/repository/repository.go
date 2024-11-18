@@ -30,7 +30,7 @@ func NewRepository(db *pgx.Conn) *Repository {
 func (r *Repository) Create(ctx context.Context, linkInfo models.Link) (string, error) {
 	var linkID string
 
-	err := r.db.QueryRow(ctx, InsertQuery, linkInfo.FullLink, linkInfo.ShortenerLink, linkInfo.Visits, linkInfo.LastVisitTime, linkInfo.CreatedAt).Scan(&linkID)
+	err := r.db.QueryRow(ctx, InsertQuery, linkInfo.FullLink, linkInfo.ShortenerLink, linkInfo.Visits, linkInfo.LastVisitedAt, linkInfo.CreatedAt).Scan(&linkID)
 	if err != nil {
 		return "", err
 	}
@@ -48,7 +48,7 @@ func (r *Repository) Get(ctx context.Context) ([]models.Link, error) {
 	links := make([]models.Link, 0, 2)
 	for rows.Next() {
 		var link models.Link
-		if err := rows.Scan(&link.ID, &link.FullLink, &link.ShortenerLink, &link.Visits, &link.LastVisitTime, &link.CreatedAt); err != nil {
+		if err := rows.Scan(&link.ID, &link.FullLink, &link.ShortenerLink, &link.Visits, &link.LastVisitedAt, &link.CreatedAt); err != nil {
 			return nil, err
 		}
 		links = append(links, link)
@@ -80,7 +80,7 @@ func (r *Repository) GetByShortenerLink(ctx context.Context, shortenerLink strin
 		&link.FullLink,
 		&link.ShortenerLink,
 		&link.Visits,
-		&link.LastVisitTime,
+		&link.LastVisitedAt,
 		&link.CreatedAt,
 	); err != nil {
 		if err == sql.ErrNoRows {

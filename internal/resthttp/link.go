@@ -1,4 +1,4 @@
-package handler
+package resthttp
 
 import (
 	"github.com/gofiber/fiber/v2"
@@ -107,7 +107,7 @@ func (h *Handler) GetStats(c *fiber.Ctx) error {
 
 	c.Status(http.StatusOK).JSON(models.GetStatsResponse{
 		StatsCount:    stat,
-		LastVisitTime: lastVisitTime,
+		LastVisitedAt: lastVisitTime,
 	})
 	return nil
 }

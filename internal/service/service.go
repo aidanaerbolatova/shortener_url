@@ -91,7 +91,7 @@ func (s *Service) GetStatsByShortenerLink(ctx context.Context, shortenerLink str
 		return 0, time.Time{}, err
 	}
 
-	return link.Visits, link.LastVisitTime, nil
+	return link.Visits, link.LastVisitedAt, nil
 }
 
 func (s *Service) DeleteExpiredShortenerLink(ctx context.Context) error {

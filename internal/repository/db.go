@@ -13,8 +13,8 @@ func NewConnection(config *config.Config) (*pgx.Conn, error) {
 		"postgresql://%s:%s@%s:%s/%s?sslmode=%s",
 		config.User,
 		config.Password,
-		config.Host,
-		config.Port,
+		config.DBHost,
+		config.DBPort,
 		config.DBName,
 		config.SSLMode,
 	)
@@ -23,7 +23,6 @@ func NewConnection(config *config.Config) (*pgx.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer conn.Close(context.Background())
 
 	return conn, nil
 }

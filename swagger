@@ -1,0 +1,127 @@
+openapi: 3.0.0
+info:
+  title: URL Shortener Service
+  version: 1.0.0
+  description: A URL shortening service that accepts long URLs, generates shortened URLs with unique identifiers, and provides analytics and other features.
+servers:
+  - url: http://localhost:8080
+paths:
+  /shortener:
+    post:
+      summary: Shorten a long URL
+      requestBody:
+        description: The original URL to be shortened
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                url:
+                  type: string
+                  format: uri
+                  example: "http://example.com"
+      responses:
+        201:
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shortened_url:
+                    type: string
+                    example: "http://localhost:8080/shortenedID"
+        400:
+          description: Invalid URL format
+  /shortener:
+    get:
+      summary: Get all shortened URLs
+      responses:
+        200:
+          description: Returns a list of all shortened URLs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  links:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        shortener_link:
+                          type: string
+                          example: "generated-id-shortenedID"
+                        full_link:
+                          type: string
+                          example: "http://example.com"
+                        created_at:
+                          type: string
+                          format: date-time
+                          example: "2024-11-15T12:34:56Z"
+        404:
+          description: No shortened links found
+  /{link}:
+    get:
+      summary: Redirect to the original URL
+      parameters:
+        - in: path
+          name: link
+          required: true
+          description: The shortened link ID
+          schema:
+            type: string
+      responses:
+        200:
+          description: original long URL
+        404:
+          description: Shortened link not found
+  /{link}:
+    delete:
+      summary: Delete a shortened link
+      parameters:
+        - in: path
+          name: link
+          required: true
+          description: The shortened link ID
+          schema:
+            type: string
+      responses:
+        200:
+          description: Link successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+        404:
+          description: Shortened link not found
+  /stats/{link}:
+    get:
+      summary: Get statistics for a shortened link
+      parameters:
+        - in: path
+          name: link
+          required: true
+          description: The shortened link ID
+          schema:
+            type: string
+      responses:
+        200:
+          description: Returns statistics for the shortened link
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  stats_count:
+                    type: int
+                    example: 12
+                  last_visit_at:
+                    type: string
+                    format: date-time
+                    example: "2024-11-15T14:12:34Z"
+        404:
+          description: Shortened link not found

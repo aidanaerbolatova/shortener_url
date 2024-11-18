@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS  link_info (
         full_link TEXT NOT NULL,
         shortener_link TEXT NOT NULL,
         visits INT DEFAULT 0,
-        last_visit_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_visit_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         CONSTRAINT unique_full_link UNIQUE (full_link),
         CONSTRAINT unique_shortener_link UNIQUE (shortener_link)

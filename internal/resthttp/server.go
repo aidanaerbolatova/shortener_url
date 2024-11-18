@@ -1,4 +1,4 @@
-package server
+package resthttp
 
 import (
 	"github.com/gofiber/fiber/v2"
