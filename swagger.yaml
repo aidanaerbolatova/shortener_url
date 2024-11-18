@@ -23,7 +23,7 @@ paths:
                   example: "http://example.com"
       responses:
         201:
-          description: ""
+          description: Successfully created a shortened URL
           content:
             application/json:
               schema:
@@ -34,7 +34,6 @@ paths:
                     example: "http://localhost:8080/shortenedID"
         400:
           description: Invalid URL format
-  /shortener:
     get:
       summary: Get all shortened URLs
       responses:
@@ -74,10 +73,9 @@ paths:
             type: string
       responses:
         200:
-          description: original long URL
+          description: Original long URL
         404:
           description: Shortened link not found
-  /{link}:
     delete:
       summary: Delete a shortened link
       parameters:
@@ -96,6 +94,8 @@ paths:
                 type: object
                 properties:
                   message:
+                    type: string
+                    example: "Link deleted successfully"
         404:
           description: Shortened link not found
   /stats/{link}:
@@ -117,7 +117,7 @@ paths:
                 type: object
                 properties:
                   stats_count:
-                    type: int
+                    type: integer
                     example: 12
                   last_visit_at:
                     type: string
